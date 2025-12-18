@@ -17,7 +17,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: ecommerce-app
-        image: ghcr.io/Brian432-cpu/e-commerce-with-aws:latest
+        image: ghcr.io/brian432-cpu/e-commerce-with-aws:latest
         ports:
         - containerPort: 3000
         resources:
@@ -27,5 +27,6 @@ spec:
           requests:
             memory: "256Mi"
             cpu: "250m"
+
 
 
