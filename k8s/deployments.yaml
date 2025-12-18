@@ -17,7 +17,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: e-commerce-api
-        image: ghcr.io/brian432-cpu/e-commerce-with-aws:b3b2e407cdcdfc503f85365255b86b0e670aac47
+        image: ghcr.io/brian432-cpu/e-commerce-with-aws:0f43d067302ec41979375fad44811c5967582b6d
         ports:
         - containerPort: 3000
         env:
