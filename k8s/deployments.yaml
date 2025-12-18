@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ecommerce-app
+  namespace: default
 spec:
   replicas: 2
   selector:
@@ -12,12 +13,17 @@ spec:
       labels:
         app: ecommerce-app
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
-        - name: ecommerce
-          image: ghcr.io/<USERNAME>/e-commerce-with-aws:latest
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 3000
-          envFrom:
-            - secretRef:
-                name: ecommerce-secrets
+      - name: ecommerce-app
+        image: ghcr.io/Brian432-cpu/e-commerce-with-aws:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
