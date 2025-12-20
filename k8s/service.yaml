@@ -6,8 +6,11 @@ metadata:
 spec:
   selector:
     app: ecommerce-app
-  ports:
-  - port: 80
-    targetPort: 3000
   type: LoadBalancer
-  
+  ports:
+    - name: http           # <--- Add this
+      port: 80             # Use 80 or 8081 depending on your preference
+      targetPort: 3000
+    - name: http-alt       # <--- Add this if you have a second port
+      port: 8081
+      targetPort: 3000
