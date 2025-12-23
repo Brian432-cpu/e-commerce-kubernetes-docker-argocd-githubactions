@@ -1,59 +1,57 @@
 # syntax=docker/dockerfile:1
-
 ARG NODE_VERSION=20.11.1
 
 ################################################################################
-# Base image
+# 1. Base image
 FROM node:${NODE_VERSION}-alpine AS base
-
 WORKDIR /usr/src/app
 
 ################################################################################
-# Install dependencies (production)
+# 2. Install dependencies
 FROM base AS deps
-
 RUN apk add --no-cache libc6-compat
-
 COPY package.json package-lock.json ./
-
 RUN npm ci --omit=dev
 
 ################################################################################
-# Build stage
+# 3. Build stage
 FROM base AS build
-
 RUN apk add --no-cache libc6-compat
-
 COPY package.json package-lock.json ./
 RUN npm ci
-
 COPY . .
 
-# ⚠️ Use a dummy DATABASE_URL for build-time
+# Dummy URL for build-time (Required for Next.js build)
 ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV DATABASE_URL=${DATABASE_URL}
+# Optimization: Ensures Next.js builds for minimal production output
+ENV NEXT_PRIVATE_STANDALONE_BUILD=true
 
-# Prevent Next.js from accessing real secrets at build time
 RUN npm run build
 
 ################################################################################
-# Runtime stage (minimal)
+# 4. Runtime stage (Final)
 FROM base AS final
-
 ENV NODE_ENV=production
-
-# Create non-root user
-USER node
-
 WORKDIR /usr/src/app
 
-# Copy dependencies and built app
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-COPY --from=build /usr/src/app/.next ./.next
-COPY --from=build /usr/src/app/public ./public
-COPY --from=build /usr/src/app/package.json ./package.json
+# --- PERMISSION FIX START ---
+# Create the .next folder as root so we can set permissions
+RUN mkdir -p .next/cache/images && chown -R node:node /usr/src/app
+# --- PERMISSION FIX END ---
+
+# Copy necessary files from build stage
+# We use --chown=node:node to ensure the app can write to its own folders
+COPY --from=deps --chown=node:node /usr/src/app/node_modules ./node_modules
+COPY --from=build --chown=node:node /usr/src/app/.next ./.next
+COPY --from=build --chown=node:node /usr/src/app/public ./public
+COPY --from=build --chown=node:node /usr/src/app/package.json ./package.json
+
+# Switch to non-root user for security
+USER node
 
 EXPOSE 3000
+ENV PORT 3000
 
-# Real secrets will be injected via Kubernetes at runtime
+# Start the application
 CMD ["npm", "start"]
