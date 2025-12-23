@@ -4,7 +4,12 @@ metadata:
   name: e-commerce-api
   namespace: default
 spec:
-  replicas: 1
+  replicas: 2 # Increased to 2 for smoother rolling updates
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1       # Creates 1 extra new pod before killing the old one
+      maxUnavailable: 0 # Keeps all old pods running until the new one is 100% ready
   selector:
     matchLabels:
       app: e-commerce-api
@@ -13,12 +18,28 @@ spec:
       labels:
         app: e-commerce-api
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret # Correctly links to your GitHub credentials
       containers:
       - name: e-commerce-api
         image: ghcr.io/brian432-cpu/e-commerce-with-aws:34ef3bc3a8868e76d13140b0c81f39298501bb9e
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
+        # Readiness Probe: Tells K8s when the pod is actually ready to take traffic
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        # Liveness Probe: Tells K8s to restart the pod if it freezes
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 10
         env:
         - name: DATABASE_URL
           valueFrom:
