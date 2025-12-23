@@ -4,12 +4,12 @@ metadata:
   name: e-commerce-api
   namespace: default
 spec:
-  replicas: 2 # Increased to 2 for smoother rolling updates
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1       # Creates 1 extra new pod before killing the old one
-      maxUnavailable: 0 # Keeps all old pods running until the new one is 100% ready
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: e-commerce-api
@@ -18,27 +18,31 @@ spec:
       labels:
         app: e-commerce-api
     spec:
+      # FIX 1: Explicitly set the group ID to 'node' (1000) for the filesystem
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
       imagePullSecrets:
-      - name: ghcr-secret # Correctly links to your GitHub credentials
+      - name: ghcr-secret
       containers:
       - name: e-commerce-api
         image: ghcr.io/brian432-cpu/e-commerce-with-aws:e82888272f2c8deebd3818e562f61b4dd614fcf7
         imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
         ports:
         - containerPort: 3000
-        # Readiness Probe: Tells K8s when the pod is actually ready to take traffic
         readinessProbe:
           httpGet:
             path: /
             port: 3000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 15 # Increased slightly for Next.js 15 boot time
           periodSeconds: 5
-        # Liveness Probe: Tells K8s to restart the pod if it freezes
         livenessProbe:
           httpGet:
             path: /
             port: 3000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 20
           periodSeconds: 10
         env:
         - name: DATABASE_URL
@@ -51,8 +55,14 @@ spec:
             secretKeyRef:
               name: auth-secret
               key: BETTER_AUTH_SECRET
+        # FIX 2: Change localhost to the service name so Auth doesn't loop
         - name: BETTER_AUTH_URL
-          value: "http://localhost"
+          value: "http://e-commerce-api" 
+        # FIX 3: Ensure Next.js knows it's in production standalone mode
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
 ---
 apiVersion: v1
 kind: Service
@@ -66,4 +76,3 @@ spec:
   - port: 80
     targetPort: 3000
   type: LoadBalancer
-
