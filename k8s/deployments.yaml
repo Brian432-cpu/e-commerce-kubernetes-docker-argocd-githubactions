@@ -22,7 +22,7 @@ spec:
       - name: ghcr-secret # Correctly links to your GitHub credentials
       containers:
       - name: e-commerce-api
-        image: ghcr.io/brian432-cpu/e-commerce-with-aws:34ef3bc3a8868e76d13140b0c81f39298501bb9e
+        image: ghcr.io/brian432-cpu/e-commerce-with-aws:288945f81183441bf19faf55088431f7c653dc85
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
